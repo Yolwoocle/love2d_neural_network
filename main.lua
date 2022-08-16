@@ -3,7 +3,106 @@ local NeuralNetwork = require "neural_network"
 
 random = love.math.random
 
-local function visualize_network(x,y)
+function love.load()
+	love.window.setMode(1000, 800, {resizable = true})
+	network = NeuralNetwork:new(2, 5, 5, 2)
+
+	cam_x, cam_y = -220, -220
+	learn_iterations = 0
+
+	current_cost = 0
+
+	perf_graph_canvas = love.graphics.newCanvas()
+	inited_perf_graph = false
+end
+
+function love.update(dt)
+	network:learn(network.datapoints, 0.1)
+	learn_iterations = learn_iterations + 1
+end
+
+function love.draw()
+	love.graphics.translate(-cam_x, -cam_y)
+
+	-- Draw neural network output
+	draw_neural_network_categorization()
+	if not inited_perf_graph then
+		init_perf_graph(-400, 150)
+		inited_perf_graph = true
+	end
+	visualize_network(220, -200)
+
+	draw_perf_graph(-400, 150)
+end
+
+function love.keypressed(key, scancode, is_reapeat)
+	if key == "r" then
+		network:randomize()
+	elseif key == "t" then
+		network:tweak_random()
+	elseif key == "l" then
+		network:learn(network.datapoints, 0.01)
+		learn_iterations = learn_iterations + 1
+	end
+end
+
+function draw_neural_network_categorization()
+	local pw = 2 -- pixel width
+	local scale = 1
+
+	for ix=-100, 100 do
+		for iy=-100, 100 do
+			local value = network:classify({ix*scale, iy*scale})
+			if value == 1 then
+				love.graphics.setColor(1,0,0)
+			else
+				love.graphics.setColor(0,1,1)
+			end
+			
+			local px, py = ix*pw, iy*pw
+			if pw == 1 then
+				love.graphics.points(px,py)
+			else
+				love.graphics.rectangle("fill", px, py, pw,pw)
+			end
+			
+		end
+	end
+	love.graphics.setColor(1,1,1,1)
+
+	-- Compute number of correct items
+	local correct = 0
+	local incorrect = 0
+	for k,point in pairs(network.datapoints) do
+		value = network:classify(point.inputs)
+		if point.value == value then
+			correct = correct + 1
+		else
+			incorrect = incorrect + 1
+		end
+	end
+
+	-- Cost
+	current_cost = network:cost(network.datapoints)
+	love.graphics.print(concat(
+		"FPS: ", love.timer.getFPS(), "\n",
+		"Cost: ", current_cost, "\n",
+		"Learn Iterations: ", learn_iterations, "\n",
+		"Correct: ", correct, " / ", #network.datapoints, " (", 100*correct/#network.datapoints, "%) \n",
+		"Incorrect: ", incorrect, " / ", #network.datapoints, " (", 100*incorrect/#network.datapoints, "%) \n"
+	), -200, 220)
+
+	-- Draw datapoints
+	for i,point in pairs(network.datapoints) do
+		local col = {0.5,0,0}
+		if point.value == 2 then
+			col = {0,0.5,0.5}
+		end
+		circle_color(col, "fill", point.inputs[1]*pw, point.inputs[2]*pw, 4)
+	end
+end
+
+function visualize_network(x,y)
 	local w = 60
 	for k,layer in pairs(network.layers) do
 		local lx = x + (k-1) * w
@@ -35,40 +134,47 @@ local function visualize_network(x,y)
 	end
 end
 
-function love.load()
-	network = NeuralNetwork:new(2, 5, 5, 2)
-end
+function draw_perf_graph(x,y)
+	love.graphics.setCanvas(perf_graph_canvas)
 
-function love.update(dt)
-
-end
-
-function love.draw()
-	local pw = 4
-	for ix=0, 100 do
-		for iy=0, 100 do
-			local value = network:classify({ix-50, iy-50})
-			if value == 1 then
-				love.graphics.setColor(1,0,0)
-			else
-				love.graphics.setColor(0,1,1)
-			end
-			love.graphics.rectangle("fill", ix*pw,iy*pw, pw,pw)
-			
-		end
+		love.graphics.setColor(1,1,0,1)
+		love.graphics.setPointSize(3)
+		love.graphics.points(10 + learn_iterations*.2, 100*(1-current_cost))
+		love.graphics.setColor(1,1,1,1)
+		love.graphics.setPointSize(1)
+		
+		love.graphics.setCanvas()
+		
+		love.graphics.draw(perf_graph_canvas,x,y)
 	end
-	love.graphics.setColor(1,1,1,1)
-
-	visualize_network(450, 20)
 	
-	love.graphics.print(love.timer.getFPS(), 0, love.graphics.getHeight()-30)
-end
-
-function love.keypressed(key, scancode, is_reapeat)
-	if key == "r" then
-		network:randomize()
-	end
-	if key == "t" then
-		network:tweak_random()
-	end
+	function init_perf_graph(x,y)
+		love.graphics.setCanvas(perf_graph_canvas)
+		
+		love.graphics.setColor(.5,.5,.5)
+		love.graphics.line(0, 0, 1000, 0)
+		love.graphics.print("1.0", 0, 100)
+		love.graphics.line(0, 100, 1000, 100)
+		love.graphics.print("0.0", 0, 0)
+		love.graphics.line(0, 50, 1000, 50)
+		
+		love.graphics.setColor(.3,.3,.3)
+		for i=2,9,2 do
+			love.graphics.line(0, i*10, 1000, i*10)
+			love.graphics.print(concat("0.",i), 0, i*10)
+		end
+		
+		love.graphics.setColor(1,1,1,1)
+		for i=0,10000,200 do
+			local tx = 10 + i*.2
+			love.graphics.line(tx, 100, tx, 120)
+			love.graphics.print(tostring(i), tx, 120)
+			love.graphics.setColor(.3,.3,.3,1)
+			love.graphics.line(tx, 0, tx, 100)
+		end
+		
+	love.graphics.setCanvas()
+		
+	love.graphics.setColor(1,1,1,1)
+	love.graphics.draw(perf_graph_canvas,x,y)
 end

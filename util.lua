@@ -738,3 +738,8 @@ function get_orthogonal(x, y, dir)
 		return get_right_vec(x,y)
 	end
 end
+
+function ternary(cond, t, f)
+	if cond then return t end
+	return f
+end

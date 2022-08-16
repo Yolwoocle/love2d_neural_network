@@ -9,6 +9,9 @@ function Layer:init(num_in_nodes, num_out_nodes, weights, biases)
 
 	self.weights = table_2d(num_in_nodes, num_out_nodes, 0)
 	self.biases = table_1d(num_out_nodes, 0)
+    
+    self.cost_gradient_w = table_2d(num_in_nodes, num_out_nodes, 0)
+	self.cost_gradient_b = table_1d(num_out_nodes, 0)
     self:randomize_weights_and_biases()
 end
 
