@@ -131,4 +131,15 @@ function NeuralNetwork:apply_cost_gradients(learn_rate)
 	end
 end
 
+function NeuralNetwork:get_datapoint_minibatch()
+	local maxskip = 8
+	local t = {}
+	i = 1
+	while i <= #self.datapoints do
+		table.insert(t, self.datapoints[i])
+		i = i + love.math.random(1, maxskip)
+	end
+	return t
+end
+
 return NeuralNetwork
