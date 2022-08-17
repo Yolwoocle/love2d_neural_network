@@ -374,7 +374,7 @@ function table_to_str(tab)
 		if type(k) == "number" then
 			s = s..table_to_str(v)..", "
 		else
-			s = s..tostr(k).." = "..table_to_str(v)..", "
+			s = s..tostring(k).." = "..table_to_str(v)..", "
 		end
 	end
 	s = string.sub(s, 1, #s-2)

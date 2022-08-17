@@ -69,17 +69,13 @@ function NeuralNetwork:tweak_random()
 	end
 end
 
-function NeuralNetwork:node_cost(output_activ, target_activ)
-    local error = output_activ - target_activ
-    return error * error
-end
-
 function NeuralNetwork:datapoint_cost(datapoint)
 	local outputs = self:calculate_outputs(datapoint.inputs)
+	local layer = self.layers[#self.layers]
 	local cost = 0
 
 	for i = 1, #outputs do
-		cost = cost + self:node_cost(outputs[i], datapoint.target_outputs[i])
+		cost = cost + layer:node_cost(outputs[i], datapoint.target_outputs[i])
 	end
 
 	return cost
@@ -95,6 +91,7 @@ function NeuralNetwork:cost(data)
 	return total / #data
 end
 
+--[[
 function NeuralNetwork:learn(training_data, learn_rate)
     local h = 0.0001
     local old_cost = self:cost(training_data)
@@ -119,6 +116,17 @@ function NeuralNetwork:learn(training_data, learn_rate)
 
 	self:apply_cost_gradients(learn_rate)
 end
+--]]
+
+function NeuralNetwork:learn(training_data, learn_rate)
+	for k, point in pairs(training_data) do
+		print("point", table_to_str(point))
+		self:update_all_gradients(point)
+	end
+
+	self:apply_cost_gradients(learn_rate / #training_data)
+	self:clear_all_gradients()
+end
 
 function NeuralNetwork:apply_cost_gradients(learn_rate)
 	for k, layer in pairs(self.layers) do
@@ -140,6 +148,28 @@ function NeuralNetwork:get_datapoint_minibatch()
 		i = i + love.math.random(1, maxskip)
 	end
 	return t
+end
+
+function NeuralNetwork:update_all_gradients(datapoint)
+	-- Takes a datapoint then stores all values like weighted inputs, activation values, etc
+	self:calculate_outputs(datapoint.inputs)
+
+	local last_layer = self.layers[#self.layers]
+	local node_values = last_layer:calculate_output_layer_node_values(datapoint.target_outputs)
+	last_layer:update_gradients(node_values)
+
+	for i_layer = #self.layers-1, 1, -1 do
+		local hidden_layer = self.layers[i_layer]
+		node_values = hidden_layer:calculate_hidden_layer_node_values(self.layers[i_layer + 1], node_values)
+		hidden_layer:update_gradients(node_values)
+	end
+end
+
+function NeuralNetwork:clear_all_gradients()
+	for k, layer in pairs(self.layers) do
+		layer.cost_gradient_w = table_2d(layer.num_in_nodes, layer.num_out_nodes, 0)
+		layer.cost_gradient_b = table_1d(layer.num_out_nodes, 0)
+	end
 end
 
 return NeuralNetwork
