@@ -19,12 +19,18 @@ function NeuralNetwork:init(...)
 		local x = random_neighbor(100)
 		local y = random_neighbor(100)
 
-		local v = (x*y*.1*.1)^2 - 40
-		-- local v = (x+y)^3 - 40
-		-- local v = 2
-		-- if x<0 and y<0 then
-		-- 	v = -1
-		-- end
+		local typ = 3
+		local v
+		if typ == 1 then
+			v = (x*y*.1*.1)^2 - 40
+
+		elseif typ == 2 then
+			v = (x+y)^3 - 40
+
+		elseif typ == 3 then
+			v = 2
+			if x<0 and y<0 then   v = -1   end
+		end
 		local value, target_outputs
 		if v > 0 then
 			value = 1
@@ -120,7 +126,6 @@ end
 
 function NeuralNetwork:learn(training_data, learn_rate)
 	for k, point in pairs(training_data) do
-		print("point", table_to_str(point))
 		self:update_all_gradients(point)
 	end
 

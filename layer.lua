@@ -91,7 +91,6 @@ function Layer:calculate_output_layer_node_values(expected_outputs)
         node_values[i] = cost_derivative * activ_derivative
     end
 
-    print("new_node_values", table_to_str(node_values), "expected_outputs", #expected_outputs, table_to_str(expected_outputs))
     return node_values
 end
 
@@ -99,7 +98,6 @@ function Layer:update_gradients(node_values)
     for i_out = 1, self.num_out_nodes do
         for i_in = 1, self.num_in_nodes do
             -- This basically tells us how sensitive the cost is to a change of the weight
-            print(i_in, self.inputs[i_in], node_values[i_out])
             local derivative_cost_weight = self.inputs[i_in] * node_values[i_out]
             self.cost_gradient_w[i_in][i_out] = self.cost_gradient_w[i_in][i_out] + derivative_cost_weight
             -- ^^^ we add because we thden take the average across all training examples

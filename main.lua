@@ -12,7 +12,7 @@ function love.load()
 
 	current_cost = 0
 
-	perf_graph_canvas = love.graphics.newCanvas()
+	perf_graph_canvas = love.graphics.newCanvas(2000,600)
 	inited_perf_graph = false
 end
 
@@ -142,7 +142,14 @@ function visualize_network(x,y)
 	end
 end
 
+perf_x = 0
+perf_ox = 0
+perf_s = .2
+perf_max = 4000
 function draw_perf_graph(x,y)
+	if learn_iterations > perf_max then
+		init_perf_graph()
+	end
 	love.graphics.setCanvas(perf_graph_canvas)
 
 		local col
@@ -162,28 +169,31 @@ function draw_perf_graph(x,y)
 		love.graphics.draw(perf_graph_canvas,x,y)
 	end
 	
-	function init_perf_graph(x,y,start)
-		start = start or 0
-		love.graphics.setCanvas(perf_graph_canvas)
+function init_perf_graph(x,y,start)
+	start = start or 0
+	love.graphics.setCanvas(perf_graph_canvas)
 		
+		love.graphics.clear()
+		local x2 = perf_max*perf_s+10
+		-- TOP & BOT LINES (1.0 & 0.0)
 		love.graphics.setColor(.5,.5,.5)
-		love.graphics.line(0, 0, 1000, 0)
+		love.graphics.line(0, 0, x2, 0)
 		love.graphics.print("0.0", 0, 100)
-		love.graphics.line(0, 100, 1000, 100)
+		love.graphics.line(0, 100, x2, 100)
 		love.graphics.print("1.0", 0, 0)
-		love.graphics.line(0, 50, 1000, 50)
+		love.graphics.line(0, 50, x2, 50)
 		
 		love.graphics.setColor(.3,.3,.3)
 		for i=2,9,2 do
-			love.graphics.line(0, i*10, 1000, i*10)
+			love.graphics.line(0, i*10, x2, i*10)
 			love.graphics.print(concat("0.",10-i), 0, i*10)
 		end
 		
 		love.graphics.setColor(1,1,1,1)
-		for i=start,start+10000,200 do
+		for i=0,perf_max,200 do
 			local tx = 10 + i*.2
 			love.graphics.line(tx, 100, tx, 120)
-			love.graphics.print(tostring(i), tx, 120)
+			love.graphics.print(tostring(start + i), tx, 120)
 			love.graphics.setColor(.3,.3,.3,1)
 			love.graphics.line(tx, 0, tx, 100)
 		end
