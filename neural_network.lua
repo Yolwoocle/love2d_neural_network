@@ -13,13 +13,11 @@ function NeuralNetwork:init(...)
 	end
 
 	self.datapoints = {}
-	local a = random_range(200, 500)
-	local b = random_range(3,6)
-	for i=1, 200 do
-		local x = random_neighbor(100)
-		local y = random_neighbor(100)
+	for i=1, 700 do
+		local x = random_neighbor(1)
+		local y = random_neighbor(1)
 
-		local typ = 3
+		local typ = 2
 		local v
 		if typ == 1 then
 			v = (x*y*.1*.1)^2 - 40
@@ -30,6 +28,11 @@ function NeuralNetwork:init(...)
 		elseif typ == 3 then
 			v = 2
 			if x<0 and y<0 then   v = -1   end
+		elseif typ == 4 then
+			v = -1
+			if abs(x)+abs(y) <60 and y > -10 then v = 1 end
+			if sqrt((x+30)^2 + (y+10)^2) < 30 then v=1 end
+			if sqrt((x-30)^2 + (y+10)^2) < 30 then v=1 end
 		end
 		local value, target_outputs
 		if v > 0 then
@@ -145,12 +148,11 @@ function NeuralNetwork:apply_cost_gradients(learn_rate)
 end
 
 function NeuralNetwork:get_datapoint_minibatch()
-	local maxskip = 8
+	local batch_size = 50
+	shuffle_table(self.datapoints)
 	local t = {}
-	i = 1
-	while i <= #self.datapoints do
+	for i=1, batch_size do
 		table.insert(t, self.datapoints[i])
-		i = i + love.math.random(1, maxskip)
 	end
 	return t
 end

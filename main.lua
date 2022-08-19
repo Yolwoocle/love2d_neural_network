@@ -9,18 +9,32 @@ function love.load()
 
 	cam_x, cam_y = -220, -220
 	learn_iterations = 0
+	iterations_before_perfect = -1
 
 	current_cost = 0
 
 	perf_graph_canvas = love.graphics.newCanvas(2000,600)
 	inited_perf_graph = false
+
+	screenshot_n = 0
+	iterations_between_screenshots = 1
+
+	-- NETWORK PARAMS
+	learn_rate = 0.1
+
+	start_time = love.timer.getTime( )
 end
 
 function love.update(dt)
 	local batch = network:get_datapoint_minibatch()
 	cur_batch_len = #batch
-	network:learn(batch, 0.1)
+	network:learn(batch, learn_rate)
 	learn_iterations = learn_iterations + 1
+
+	if learn_iterations%iterations_between_screenshots == 0 then
+		love.graphics.captureScreenshot(concat(screenshot_n,".png"))
+		screenshot_n = screenshot_n + 1
+	end 
 end
 
 function love.draw()
@@ -53,7 +67,7 @@ end
 function draw_neural_network_categorization()
 	-- [[
 	local pw = 2 -- pixel width
-	local scale = 1
+	local scale = 1/100
 
 	for ix=-100, 100 do
 		for iy=-100, 100 do
@@ -93,15 +107,25 @@ function draw_neural_network_categorization()
 		if point.value == 2 then
 			col = {0,0.5,0.5}
 		end
-		circle_color(col, "fill", point.inputs[1]*pw, point.inputs[2]*pw, 4)
+		local rscale = (1/scale)
+		circle_color(col, "fill", point.inputs[1]*pw*rscale, point.inputs[2]*pw*rscale, 4)
 	end
 	--]]
+
+	if correct == #network.datapoints and iterations_before_perfect == -1 then
+		iterations_before_perfect = learn_iterations
+	end
 	-- Cost
 	current_cost = network:cost(network.datapoints)
+	local t = love.timer.getTime()
+	local min, sec = floor(t/60), t%60
 	love.graphics.print(concat(
 		"FPS: ", love.timer.getFPS(), "\n",
 		"Cost: ", current_cost, "\n",
 		"Learn Iterations: ", learn_iterations, "\n",
+		"Iterations before 100%: ", iterations_before_perfect, "\n",
+		"Time:", min, ":", sec,"\n",
+		"\n",
 		"Correct: ", correct, " / ", #network.datapoints, " (", 100*correct/#network.datapoints, "%) \n",
 		"Incorrect: ", incorrect, " / ", #network.datapoints, " (", 100*incorrect/#network.datapoints, "%) \n",
 		"Current batch size: ", cur_batch_len, "\n"
@@ -126,10 +150,11 @@ function visualize_network(x,y)
 				love.graphics.setColor(col)
 				love.graphics.line(lx, y+i*h, lx+w, y+j*h)
 				
-				local px = lerp(lx, lx+w, .5)
-				local py = lerp(y+i*h, y+j*h, .5)
-				local txt = tostring(round(weight,2))
-				love.graphics.print(txt, px-get_text_width(txt)/2, py)
+				-- local r = .5
+				-- local px = lerp(lx, lx+w, r)
+				-- local py = lerp(y+i*h, y+j*h, r)
+				-- local txt = tostring(round(weight,2))
+				-- love.graphics.print(txt, px-get_text_width(txt)/2, py)
 			end
 
 			circle_color({1,1,1}, "fill", lx, y+i*h, 5)
@@ -147,27 +172,30 @@ perf_ox = 0
 perf_s = .2
 perf_max = 4000
 function draw_perf_graph(x,y)
-	if learn_iterations > perf_max then
-		init_perf_graph()
-	end
 	love.graphics.setCanvas(perf_graph_canvas)
-
-		local col
-		if current_cost > .5 then
-			col = lerp_color({1,1,0},{1,0,0},current_cost*2-1)
-		else 
-			col = lerp_color({0,1,0},{1,1,0},current_cost*2)
-		end
-		love.graphics.setColor(col)
-		love.graphics.setPointSize(3)
-		love.graphics.points(10 + learn_iterations*.2, 100*(1-current_cost))
-		love.graphics.setColor(1,1,1,1)
-		love.graphics.setPointSize(1)
-		
-		love.graphics.setCanvas()
-		
-		love.graphics.draw(perf_graph_canvas,x,y)
+	if learn_iterations-perf_ox > perf_max then
+		perf_x = perf_x + perf_max
+		perf_ox = perf_ox + perf_max
+		init_perf_graph(-400,150, perf_x)
+		print("reset")
 	end
+
+	local col
+	if current_cost > .5 then
+		col = lerp_color({1,1,0},{1,0,0},current_cost*2-1)
+	else 
+		col = lerp_color({0,1,0},{1,1,0},current_cost*2)
+	end
+	love.graphics.setColor(col)
+	love.graphics.setPointSize(3)
+	love.graphics.points(10 + (learn_iterations- perf_ox)*perf_s , 100*(1-current_cost))
+	love.graphics.setColor(1,1,1,1)
+	love.graphics.setPointSize(1)
+	
+	love.graphics.setCanvas()
+	
+	love.graphics.draw(perf_graph_canvas,x,y)
+end
 	
 function init_perf_graph(x,y,start)
 	start = start or 0
